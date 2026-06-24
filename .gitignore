@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.production
+
+# Runtime data
+data/
+*.log
+
+# IDE
+.vscode/settings.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# pnpm
+pnpm-lock.yaml

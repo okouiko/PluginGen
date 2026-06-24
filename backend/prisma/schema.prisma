@@ -1,0 +1,234 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("PLUGINGEN_DATABASE_URL")
+}
+
+enum CoreType {
+  BUKKIT
+  SPIGOT
+  PAPER
+  PURPUR
+  BUNGEECORD
+  VELOCITY
+}
+
+enum ProjectStatus {
+  DRAFT
+  MODIFIED
+  COMPILING
+  COMPILED
+  FAILED
+}
+
+enum CompileStatus {
+  PENDING
+  COMPILING
+  SUCCESS
+  FAILED
+}
+
+enum TargetType {
+  PLUGIN
+  COMMENT
+}
+
+model User {
+  id         String   @id @default(uuid())
+  email      String   @unique
+  password   String
+  nickname   String
+  avatar     String   @default("https://api.dicebear.com/9.x/initials/svg?seed=PluginGen")
+  bio        String?
+  level      Int      @default(1)
+  exp        Int      @default(0)
+  dailyQuota Int      @default(20)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  plugins           PluginProject[]
+  favorites         Favorite[]
+  checkIns          DailyCheckIn[]
+  dailyTasks        DailyTask[]
+  comments          Comment[]
+  ratings           Rating[]
+  likes             Like[]
+  followers         Follow[]        @relation("following")
+  following         Follow[]        @relation("follower")
+  sentMessages      Message[]       @relation("sender")
+  receivedMessages  Message[]       @relation("receiver")
+  notifications     Notification[]
+
+  @@index([email])
+}
+
+model PluginProject {
+  id             String        @id @default(uuid())
+  userId         String
+  name           String
+  description    String?
+  mcVersion      String
+  coreType       CoreType
+  javaVersion    String
+  packageName    String
+  status         ProjectStatus @default(DRAFT)
+  currentVersion Int           @default(0)
+  isPublished    Boolean       @default(false)
+  downloadCount  Int           @default(0)
+  favoriteCount  Int           @default(0)
+  starCount      Int           @default(0)
+  isPinned       Boolean       @default(false)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions  PluginVersion[]
+  favorites Favorite[]
+  comments  Comment[]
+  ratings   Rating[]
+
+  @@index([userId])
+  @@index([isPublished, createdAt])
+  @@index([isPublished, coreType])
+  @@index([isPublished, mcVersion])
+  @@index([userId, isPublished])
+}
+
+model PluginVersion {
+  id            String        @id @default(uuid())
+  pluginId      String
+  version       Int
+  filesManifest Json
+  compileStatus CompileStatus @default(PENDING)
+  compileLog    String?
+  createdAt     DateTime      @default(now())
+
+  plugin PluginProject @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@unique([pluginId, version])
+  @@index([pluginId, createdAt])
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String
+  pluginId  String
+  createdAt DateTime @default(now())
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plugin PluginProject @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pluginId])
+  @@index([pluginId])
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  userId    String
+  pluginId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plugin PluginProject @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@index([pluginId, createdAt])
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  userId    String
+  pluginId  String
+  score     Int
+  createdAt DateTime @default(now())
+
+  user   User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plugin PluginProject @relation(fields: [pluginId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, pluginId])
+  @@index([pluginId])
+}
+
+model Like {
+  id         String     @id @default(uuid())
+  userId     String
+  targetId   String
+  targetType TargetType
+  createdAt  DateTime   @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, targetId, targetType])
+  @@index([targetId, targetType])
+}
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  fromUserId String
+  toUserId   String
+  content   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  sender   User @relation("sender", fields: [fromUserId], references: [id], onDelete: Cascade)
+  receiver User @relation("receiver", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@index([toUserId, createdAt])
+  @@index([fromUserId, createdAt])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  type      String
+  data      Json
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([userId, read, createdAt])
+}
+
+model DailyCheckIn {
+  id        String   @id @default(uuid())
+  userId    String
+  date      DateTime
+  streak    Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date])
+}
+
+model DailyTask {
+  id            String   @id @default(uuid())
+  userId        String
+  date          DateTime
+  taskType      String
+  progress      Int      @default(0)
+  completed     Boolean  @default(false)
+  rewardClaimed Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, date, taskType])
+}

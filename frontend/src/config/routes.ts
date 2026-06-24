@@ -1,0 +1,15 @@
+export const ROUTES = {
+  HOME: '/',
+  LOGIN: '/login',
+  REGISTER: '/register',
+  DASHBOARD: '/dashboard',
+  DASHBOARD_CREATE: '/dashboard/create',
+  DASHBOARD_PLUGINS: '/dashboard/plugins',
+  DASHBOARD_PLUGIN_EDIT: '/dashboard/plugins/:id/edit',
+  DASHBOARD_SETTINGS: '/dashboard/settings',
+  WORKSPACE: '/workspace',
+  WORKSPACE_DETAIL: '/workspace/:id',
+  USER_PROFILE: '/user/:id',
+  MESSAGES: '/messages',
+  DAILY: '/daily',
+} as const;
